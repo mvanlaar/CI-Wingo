@@ -203,78 +203,75 @@ namespace CI_Wingo
                         // Parse the response for the flights!
                         dynamic GetFlights = JsonConvert.DeserializeObject(ResponseGetFlights);
                         // Check if OutboundSegments exists...
-                        string DepartTime = GetFlights.Availability.OutboundSegments[0].Departure;
-                        string ArrivalTime = GetFlights.Availability.OutboundSegments[0].Arrival;
-                        string AirCraft = GetFlights.Availability.OutboundSegments[0].AirCraft;
-                        string FlightNumber = GetFlights.Availability.OutboundSegments[0].FlightNumber;
-                        string FlightOperator = GetFlights.Availability.OutboundSegments[0].Carrier.Code;
-                        Boolean TEMP_FlightMonday = false;
-                        Boolean TEMP_FlightTuesday = false;
-                        Boolean TEMP_FlightWednesday = false;
-                        Boolean TEMP_FlightThursday = false;
-                        Boolean TEMP_FlightFriday = false;
-                        Boolean TEMP_FlightSaterday = false;
-                        Boolean TEMP_FlightSunday = false;
-
-                        int dayofweek = Convert.ToInt32(FlightDate.DayOfWeek);
-                        if (dayofweek == 0) { TEMP_FlightSunday = true; }
-                        if (dayofweek == 1) { TEMP_FlightMonday = true; }
-                        if (dayofweek == 2) { TEMP_FlightTuesday = true; }
-                        if (dayofweek == 3) { TEMP_FlightWednesday = true; }
-                        if (dayofweek == 4) { TEMP_FlightThursday = true; }
-                        if (dayofweek == 5) { TEMP_FlightFriday = true; }
-                        if (dayofweek == 6) { TEMP_FlightSaterday = true; }
-
-                        // Add Flight to CIFlights
-                        bool alreadyExists = CIFLights.Exists(x => x.FromIATA == fromiata
-                            && x.ToIATA == toiata
-                            && x.FromDate == FlightDate.Date
-                            && x.ToDate == FlightDate.Date
-                            && x.FlightNumber == FlightNumber
-                            && x.FlightAirline == FlightOperator
-                            && x.FlightMonday == TEMP_FlightMonday
-                            && x.FlightTuesday == TEMP_FlightTuesday
-                            && x.FlightWednesday == TEMP_FlightWednesday
-                            && x.FlightThursday == TEMP_FlightThursday
-                            && x.FlightFriday == TEMP_FlightFriday
-                            && x.FlightSaterday == TEMP_FlightSaterday
-                            && x.FlightSunday == TEMP_FlightSunday);
-
-
-                        if (!alreadyExists)
+                        if (GetFlights.Availability.OutboundSegments.Count > 0)
                         {
-                            // don't add flights that already exists
-                            CIFLights.Add(new CIFLight
+                            string DepartTime = GetFlights.Availability.OutboundSegments[0].Departure;
+                            string ArrivalTime = GetFlights.Availability.OutboundSegments[0].Arrival;
+                            string AirCraft = GetFlights.Availability.OutboundSegments[0].AirCraft;
+                            string FlightNumber = GetFlights.Availability.OutboundSegments[0].FlightNumber;
+                            string FlightOperator = GetFlights.Availability.OutboundSegments[0].Carrier.Code;
+                            Boolean TEMP_FlightMonday = false;
+                            Boolean TEMP_FlightTuesday = false;
+                            Boolean TEMP_FlightWednesday = false;
+                            Boolean TEMP_FlightThursday = false;
+                            Boolean TEMP_FlightFriday = false;
+                            Boolean TEMP_FlightSaterday = false;
+                            Boolean TEMP_FlightSunday = false;
+
+                            int dayofweek = Convert.ToInt32(FlightDate.DayOfWeek);
+                            if (dayofweek == 0) { TEMP_FlightSunday = true; }
+                            if (dayofweek == 1) { TEMP_FlightMonday = true; }
+                            if (dayofweek == 2) { TEMP_FlightTuesday = true; }
+                            if (dayofweek == 3) { TEMP_FlightWednesday = true; }
+                            if (dayofweek == 4) { TEMP_FlightThursday = true; }
+                            if (dayofweek == 5) { TEMP_FlightFriday = true; }
+                            if (dayofweek == 6) { TEMP_FlightSaterday = true; }
+
+                            // Add Flight to CIFlights
+                            bool alreadyExists = CIFLights.Exists(x => x.FromIATA == fromiata
+                                && x.ToIATA == toiata
+                                && x.FromDate == FlightDate.Date
+                                && x.ToDate == FlightDate.Date
+                                && x.FlightNumber == FlightNumber
+                                && x.FlightAirline == FlightOperator
+                                && x.FlightMonday == TEMP_FlightMonday
+                                && x.FlightTuesday == TEMP_FlightTuesday
+                                && x.FlightWednesday == TEMP_FlightWednesday
+                                && x.FlightThursday == TEMP_FlightThursday
+                                && x.FlightFriday == TEMP_FlightFriday
+                                && x.FlightSaterday == TEMP_FlightSaterday
+                                && x.FlightSunday == TEMP_FlightSunday);
+
+
+                            if (!alreadyExists)
                             {
-                                FromIATA = fromiata,
-                                ToIATA = toiata,
-                                FromDate = FlightDate.Date,
-                                ToDate = FlightDate.Date,
-                                ArrivalTime = DateTime.Parse(DepartTime, CultureInfo.InvariantCulture),
-                                DepartTime = DateTime.Parse(ArrivalTime, CultureInfo.InvariantCulture),
-                                FlightAircraft = AirCraft,
-                                FlightAirline = FlightOperator,
-                                FlightMonday = TEMP_FlightMonday,
-                                FlightTuesday = TEMP_FlightTuesday,
-                                FlightWednesday = TEMP_FlightWednesday,
-                                FlightThursday = TEMP_FlightThursday,
-                                FlightFriday = TEMP_FlightFriday,
-                                FlightSaterday = TEMP_FlightSaterday,
-                                FlightSunday = TEMP_FlightSunday,
-                                FlightNumber = FlightNumber,
-                                FlightOperator = FlightOperator,
-                                
-                            });
-                        }
+                                // don't add flights that already exists
+                                CIFLights.Add(new CIFLight
+                                {
+                                    FromIATA = fromiata,
+                                    ToIATA = toiata,
+                                    FromDate = FlightDate.Date,
+                                    ToDate = FlightDate.Date,
+                                    ArrivalTime = DateTime.Parse(DepartTime, CultureInfo.InvariantCulture),
+                                    DepartTime = DateTime.Parse(ArrivalTime, CultureInfo.InvariantCulture),
+                                    FlightAircraft = AirCraft,
+                                    FlightAirline = FlightOperator,
+                                    FlightMonday = TEMP_FlightMonday,
+                                    FlightTuesday = TEMP_FlightTuesday,
+                                    FlightWednesday = TEMP_FlightWednesday,
+                                    FlightThursday = TEMP_FlightThursday,
+                                    FlightFriday = TEMP_FlightFriday,
+                                    FlightSaterday = TEMP_FlightSaterday,
+                                    FlightSunday = TEMP_FlightSunday,
+                                    FlightNumber = FlightNumber,
+                                    FlightOperator = FlightOperator,
 
-                    }
+                                });
+                            }
+                        }                        
+
+                    }                  
                     
-                    // Only ask for flights on the dates received...
-                    // Post To: 
-                    // Post To: https://www.wingo.com/Api/AvailablityRequest/Post
-
-
-
                 }
             }
 
