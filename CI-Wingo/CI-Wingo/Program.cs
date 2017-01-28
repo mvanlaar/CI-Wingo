@@ -132,6 +132,9 @@ namespace CI_Wingo
                     dynamic ResponseGetAllFlightDatesJson = JsonConvert.DeserializeObject(ResponseGetAllFlightDates);
                     // Loop through all the dates....
                     foreach (var item in ResponseGetAllFlightDatesJson.departureDates.Children())
+                    //var FlightDays = ResponseGetAllFlightDatesJson.departureDates.Children();
+
+                    //Parallel.ForEach(FlightDays, new ParallelOptions { MaxDegreeOfParallelism = 5 }, (item) =>
                     {
                         // Parse the Date
                         //19-4-2017
@@ -140,7 +143,7 @@ namespace CI_Wingo
                         // Aanvraag - URL: https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode=BOG&toCityCode=AUA&departureDateString=2017-1-28&returnDateString=2017-1-28&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP
                         string requesturl = String.Format("https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode={0}&toCityCode={1}&departureDateString={2}&returnDateString={2}&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP", fromiata, toiata, FlightDate.ToString("yyyy-M-dd", CultureInfo.InvariantCulture));
                         request = (HttpWebRequest)WebRequest.Create(requesturl);
-                        
+
                         request.Method = "GET";
                         //request.ContentType = "application/json; charset=utf-8";
                         //request.ContentLength = dataIndex.Length;
@@ -174,7 +177,7 @@ namespace CI_Wingo
                         // {"interline":false,"fromCityCode":"BOG","toCityCode":"AUA","departureDateString":"2017-01-28","returnDateString":"2017-01-28","startDateStringOutbound":"2017-01-28","endDateStringOutbound":"2017-01-28","startDateStringInbound":"","endDateStringInbound":"","adults":1,"children":0,"infants":0,"roundTrip":false,"useFlexDates":true,"isOutbound":true,"filterMethod":"100","promocode":"","currency":"COP","languageCode":"es-CO","fareTypeCategory":1,"IATANumber":"","securityToken":"ab05d3ae70ef47a890480di4w7oenff0pb64f8ieka7a"}
 
                         var FlightsPostJson = new { interline = false, fromCityCode = fromiata, toCityCode = toiata, departureDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), returnDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), startDateStringOutbound = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), endDateStringOutbound = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), startDateStringInbound = "", endDateStringInbound = "", adults = 1, children = 0, infants = 0, roundTrip = false, useFlexDates = true, isOutbound = true, filterMethod = 100, promocode = "", currency = "COP", languageCode = "es-CO", fareTypeCategory = 1, IATANumber = "", securityToken = SecurityCode };
-                    
+
                         string FlightsPostJsonString = JsonConvert.SerializeObject(FlightsPostJson);
 
                         var dataFlightsPost = Encoding.ASCII.GetBytes(FlightsPostJsonString);
@@ -208,8 +211,11 @@ namespace CI_Wingo
                             string DepartTime = GetFlights.Availability.OutboundSegments[0].Departure;
                             string ArrivalTime = GetFlights.Availability.OutboundSegments[0].Arrival;
                             string AirCraft = GetFlights.Availability.OutboundSegments[0].AirCraft;
+                            AirCraft = AirCraft.Trim();
                             string FlightNumber = GetFlights.Availability.OutboundSegments[0].FlightNumber;
+                            FlightNumber = FlightNumber.Trim();
                             string FlightOperator = GetFlights.Availability.OutboundSegments[0].Carrier.Code;
+                            FlightOperator = FlightOperator.Trim();
                             Boolean TEMP_FlightMonday = false;
                             Boolean TEMP_FlightTuesday = false;
                             Boolean TEMP_FlightWednesday = false;
@@ -268,10 +274,10 @@ namespace CI_Wingo
 
                                 });
                             }
-                        }                        
+                        }
 
-                    }                  
-                    
+                    }//);
+
                 }
             }
 
@@ -313,15 +319,23 @@ namespace CI_Wingo
 
                 var airlines = CIFLights.Select(m => new { m.FlightAirline }).Distinct().ToList();
 
-                //for (int i = 0; i < airlines.Count; i++) // Loop through List with for)
-                //{
-                using (var client = new WebClient())
+                for (int i = 0; i < airlines.Count; i++) // Loop through List with for)
                 {
-                    client.Encoding = Encoding.UTF8;
-                    client.Headers.Add("user-agent", ua);
                     string urlapi = ConfigurationManager.AppSettings.Get("APIUrl") + APIPathAirline + airlines[0].FlightAirline.Trim();
-                    var jsonapi = client.DownloadString(urlapi);
-                    dynamic AirlineResponseJson = JsonConvert.DeserializeObject(jsonapi);
+                    string RequestAirlineJson = String.Empty;
+                    HttpWebRequest requestAirline = (HttpWebRequest)WebRequest.Create(urlapi);
+
+                    requestAirline.Method = "GET";                   
+                    requestAirline.UserAgent = ua;                    
+                    requestAirline.Accept = HeaderAccept;                    
+                    requestAirline.Proxy = null;
+                    requestAirline.KeepAlive = false;
+                    using (HttpWebResponse Airlineresponse = (HttpWebResponse)requestAirline.GetResponse())
+                    using (StreamReader reader = new StreamReader(Airlineresponse.GetResponseStream()))
+                    {
+                        RequestAirlineJson = reader.ReadToEnd();
+                    }                    
+                    dynamic AirlineResponseJson = JsonConvert.DeserializeObject(RequestAirlineJson);
                     csv.WriteField(Convert.ToString(AirlineResponseJson[0].code));
                     csv.WriteField(Convert.ToString(AirlineResponseJson[0].name));
                     csv.WriteField(Convert.ToString(AirlineResponseJson[0].website));
@@ -330,9 +344,8 @@ namespace CI_Wingo
                     csv.WriteField(Convert.ToString(AirlineResponseJson[0].phone));
                     csv.WriteField("");
                     csv.WriteField("");
-                    csv.NextRecord();
+                    csv.NextRecord();                
                 }
-                //}
             }
 
             Console.WriteLine("Creating GTFS File routes.txt ...");
@@ -340,8 +353,6 @@ namespace CI_Wingo
             using (var gtfsroutes = new StreamWriter(@"gtfs\\routes.txt"))
             {
                 // Route record
-
-
                 var csvroutes = new CsvWriter(gtfsroutes);
                 csvroutes.Configuration.Delimiter = ",";
                 csvroutes.Configuration.Encoding = Encoding.UTF8;
@@ -360,20 +371,6 @@ namespace CI_Wingo
 
 
                 var routes = CIFLights.Select(m => new { m.FromIATA, m.ToIATA, m.FlightAirline, m.FlightNumber }).Distinct().ToList();
-
-                //for (int j = 0; j < routes.Count; j++)
-                //{
-                //    int FlightNumberOrg = Convert.ToInt16(routes[j].FlightNumber);
-                //    if (IsEven(FlightNumberOrg))
-                //    {
-                //        // This is the flight from te base station
-                //        // So the return flight in part of this route.
-                //        // Return flight is flightnumber + 1
-                //        int ReturnFlight = FlightNumberOrg + 1;
-                //        routes.Remove(routes.Find(c => c.FromIATA == routes[j].ToIATA && c.ToIATA == routes[j].FromIATA && c.FlightAirline == routes[j].FlightAirline && c.FlightNumber == Convert.ToString(ReturnFlight)));                            
-                //    }
-                //    // Need to rework special cases like the ist - bog - pty - ist flight nr 800
-                //}
                 var routesdist = routes.Select(m => new { m.FromIATA, m.ToIATA, m.FlightAirline }).Distinct().ToList();
                 //var routes = CIFLights.Select(m => new { m.FromIATA, m.ToIATA, m.FlightAirline }).Distinct().ToList();
 
