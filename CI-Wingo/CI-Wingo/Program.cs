@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CI_Wingo
@@ -139,143 +140,208 @@ namespace CI_Wingo
                         // Parse the Date
                         //19-4-2017
                         DateTime FlightDate = DateTime.ParseExact(item.ToString(), "d-M-yyyy", provider);
-                        // 
-                        // Aanvraag - URL: https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode=BOG&toCityCode=AUA&departureDateString=2017-1-28&returnDateString=2017-1-28&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP
-                        string requesturl = String.Format("https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode={0}&toCityCode={1}&departureDateString={2}&returnDateString={2}&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP", fromiata, toiata, FlightDate.ToString("yyyy-M-dd", CultureInfo.InvariantCulture));
-                        request = (HttpWebRequest)WebRequest.Create(requesturl);
-
-                        request.Method = "GET";
-                        //request.ContentType = "application/json; charset=utf-8";
-                        //request.ContentLength = dataIndex.Length;
-                        request.UserAgent = ua;
-                        request.Referer = "https://www.wingo.com/es";
-                        request.Headers.Add("Accept-Encoding", HeaderEncoding);
-                        request.Accept = HeaderAccept;
-                        //request.Headers.Add("X-Requested-With", "XMLHttpRequest");
-                        request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                        request.CookieContainer = cookieContainer;
-                        request.Proxy = null;
-                        using (HttpWebResponse Searchresponse = (HttpWebResponse)request.GetResponse())
-                        using (StreamReader reader = new StreamReader(Searchresponse.GetResponseStream()))
+                        Console.WriteLine("Date: {0}", FlightDate.ToString());
+                        try
                         {
-                            SearchresponseHtml = reader.ReadToEnd();
-                        }
-                        // Get Security Code for the Json Request
-                        int startSecurityCode = SearchresponseHtml.IndexOf("SecurityToken: ") + 14;
-                        int endSecurityCode = SearchresponseHtml.IndexOf("ShowLowestFareAsSoldOut", startSecurityCode);
-                        string SecurityCode = SearchresponseHtml.Substring(startSecurityCode, endSecurityCode - startSecurityCode);
-                        // Remove Newline
-                        SecurityCode = SecurityCode.TrimEnd(System.Environment.NewLine.ToCharArray());
-                        // Trim the string
-                        SecurityCode = SecurityCode.Trim();
-                        // Remove last , from the string
-                        SecurityCode = SecurityCode.Remove(SecurityCode.Length - 1);
-                        SecurityCode = SecurityCode.Replace("\"", "");
-                        // Post The flight Details
-                        request = (HttpWebRequest)WebRequest.Create("https://www.wingo.com/Api/AvailablityRequest/Post");
+                            // 
+                            // Aanvraag - URL: https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode=BOG&toCityCode=AUA&departureDateString=2017-1-28&returnDateString=2017-1-28&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP
+                            string requesturl =
+                                String.Format(
+                                    "https://www.wingo.com/es/Flight/Search?interline=false&fromCityCode={0}&toCityCode={1}&departureDateString={2}&returnDateString={2}&adults=1&children=0&infants=0&roundTrip=false&useFlexDates=true&allInclusive=&promocode=&fareTypes=&currency=COP",
+                                    fromiata, toiata, FlightDate.ToString("yyyy-M-dd", CultureInfo.InvariantCulture));
+                            request = (HttpWebRequest) WebRequest.Create(requesturl);
 
-                        // {"interline":false,"fromCityCode":"BOG","toCityCode":"AUA","departureDateString":"2017-01-28","returnDateString":"2017-01-28","startDateStringOutbound":"2017-01-28","endDateStringOutbound":"2017-01-28","startDateStringInbound":"","endDateStringInbound":"","adults":1,"children":0,"infants":0,"roundTrip":false,"useFlexDates":true,"isOutbound":true,"filterMethod":"100","promocode":"","currency":"COP","languageCode":"es-CO","fareTypeCategory":1,"IATANumber":"","securityToken":"ab05d3ae70ef47a890480di4w7oenff0pb64f8ieka7a"}
-
-                        var FlightsPostJson = new { interline = false, fromCityCode = fromiata, toCityCode = toiata, departureDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), returnDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), startDateStringOutbound = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), endDateStringOutbound = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), startDateStringInbound = "", endDateStringInbound = "", adults = 1, children = 0, infants = 0, roundTrip = false, useFlexDates = true, isOutbound = true, filterMethod = 100, promocode = "", currency = "COP", languageCode = "es-CO", fareTypeCategory = 1, IATANumber = "", securityToken = SecurityCode };
-
-                        string FlightsPostJsonString = JsonConvert.SerializeObject(FlightsPostJson);
-
-                        var dataFlightsPost = Encoding.ASCII.GetBytes(FlightsPostJsonString);
-
-                        request.Method = "POST";
-                        request.ContentType = "application/json; charset=utf-8";
-                        request.ContentLength = dataFlightsPost.Length;
-                        request.UserAgent = ua;
-                        request.Referer = requesturl;
-                        request.Headers.Add("Accept-Encoding", HeaderEncoding);
-                        request.Accept = "application/json, text/javascript, */*; q=0.01";
-                        request.Headers.Add("X-Requested-With", "XMLHttpRequest");
-                        request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                        request.CookieContainer = cookieContainer;
-                        request.Proxy = null;
-
-                        using (var streamIndex = request.GetRequestStream())
-                        {
-                            streamIndex.Write(dataFlightsPost, 0, dataFlightsPost.Length);
-                        }
-                        using (HttpWebResponse responseFlights = (HttpWebResponse)request.GetResponse())
-                        using (StreamReader readerFlights = new StreamReader(responseFlights.GetResponseStream()))
-                        {
-                            ResponseGetFlights = readerFlights.ReadToEnd();
-                        }
-                        // Parse the response for the flights!
-                        dynamic GetFlights = JsonConvert.DeserializeObject(ResponseGetFlights);
-                        // Check if OutboundSegments exists...
-                        if (GetFlights.Availability.OutboundSegments.Count > 0)
-                        {
-                            string DepartTime = GetFlights.Availability.OutboundSegments[0].Departure;
-                            string ArrivalTime = GetFlights.Availability.OutboundSegments[0].Arrival;
-                            string AirCraft = GetFlights.Availability.OutboundSegments[0].AirCraft;
-                            AirCraft = AirCraft.Trim();
-                            string FlightNumber = GetFlights.Availability.OutboundSegments[0].FlightNumber;
-                            FlightNumber = FlightNumber.Trim();
-                            string FlightOperator = GetFlights.Availability.OutboundSegments[0].Carrier.Code;
-                            FlightOperator = FlightOperator.Trim();
-                            Boolean TEMP_FlightMonday = false;
-                            Boolean TEMP_FlightTuesday = false;
-                            Boolean TEMP_FlightWednesday = false;
-                            Boolean TEMP_FlightThursday = false;
-                            Boolean TEMP_FlightFriday = false;
-                            Boolean TEMP_FlightSaterday = false;
-                            Boolean TEMP_FlightSunday = false;
-
-                            int dayofweek = Convert.ToInt32(FlightDate.DayOfWeek);
-                            if (dayofweek == 0) { TEMP_FlightSunday = true; }
-                            if (dayofweek == 1) { TEMP_FlightMonday = true; }
-                            if (dayofweek == 2) { TEMP_FlightTuesday = true; }
-                            if (dayofweek == 3) { TEMP_FlightWednesday = true; }
-                            if (dayofweek == 4) { TEMP_FlightThursday = true; }
-                            if (dayofweek == 5) { TEMP_FlightFriday = true; }
-                            if (dayofweek == 6) { TEMP_FlightSaterday = true; }
-
-                            // Add Flight to CIFlights
-                            bool alreadyExists = CIFLights.Exists(x => x.FromIATA == fromiata
-                                && x.ToIATA == toiata
-                                && x.FromDate == FlightDate.Date
-                                && x.ToDate == FlightDate.Date
-                                && x.FlightNumber == FlightNumber
-                                && x.FlightAirline == FlightOperator
-                                && x.FlightMonday == TEMP_FlightMonday
-                                && x.FlightTuesday == TEMP_FlightTuesday
-                                && x.FlightWednesday == TEMP_FlightWednesday
-                                && x.FlightThursday == TEMP_FlightThursday
-                                && x.FlightFriday == TEMP_FlightFriday
-                                && x.FlightSaterday == TEMP_FlightSaterday
-                                && x.FlightSunday == TEMP_FlightSunday);
-
-
-                            if (!alreadyExists)
+                            request.Method = "GET";
+                            //request.ContentType = "application/json; charset=utf-8";
+                            //request.ContentLength = dataIndex.Length;
+                            request.UserAgent = ua;
+                            request.Referer = "https://www.wingo.com/es";
+                            request.Headers.Add("Accept-Encoding", HeaderEncoding);
+                            request.Accept = HeaderAccept;
+                            //request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+                            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                            request.CookieContainer = cookieContainer;
+                            request.Proxy = null;
+                            using (HttpWebResponse Searchresponse = (HttpWebResponse) request.GetResponse())
+                            using (StreamReader reader = new StreamReader(Searchresponse.GetResponseStream()))
                             {
-                                // don't add flights that already exists
-                                CIFLights.Add(new CIFLight
-                                {
-                                    FromIATA = fromiata,
-                                    ToIATA = toiata,
-                                    FromDate = FlightDate.Date,
-                                    ToDate = FlightDate.Date,
-                                    ArrivalTime = DateTime.Parse(ArrivalTime, CultureInfo.InvariantCulture),
-                                    DepartTime = DateTime.Parse(DepartTime, CultureInfo.InvariantCulture),
-                                    FlightAircraft = AirCraft,
-                                    FlightAirline = FlightOperator,
-                                    FlightMonday = TEMP_FlightMonday,
-                                    FlightTuesday = TEMP_FlightTuesday,
-                                    FlightWednesday = TEMP_FlightWednesday,
-                                    FlightThursday = TEMP_FlightThursday,
-                                    FlightFriday = TEMP_FlightFriday,
-                                    FlightSaterday = TEMP_FlightSaterday,
-                                    FlightSunday = TEMP_FlightSunday,
-                                    FlightNumber = FlightNumber,
-                                    FlightOperator = FlightOperator,
-
-                                });
+                                SearchresponseHtml = reader.ReadToEnd();
                             }
-                        }
+                            // Get Security Code for the Json Request
+                            int startSecurityCode = SearchresponseHtml.IndexOf("SecurityToken: ") + 14;
+                            int endSecurityCode =
+                                SearchresponseHtml.IndexOf("ShowLowestFareAsSoldOut", startSecurityCode);
+                            string SecurityCode =
+                                SearchresponseHtml.Substring(startSecurityCode, endSecurityCode - startSecurityCode);
+                            // Remove Newline
+                            SecurityCode = SecurityCode.TrimEnd(System.Environment.NewLine.ToCharArray());
+                            // Trim the string
+                            SecurityCode = SecurityCode.Trim();
+                            // Remove last , from the string
+                            SecurityCode = SecurityCode.Remove(SecurityCode.Length - 1);
+                            SecurityCode = SecurityCode.Replace("\"", "");
+                            // Post The flight Details
+                            request = (HttpWebRequest) WebRequest.Create(
+                                "https://www.wingo.com/Api/AvailablityRequest/Post");
 
+                            // {"interline":false,"fromCityCode":"BOG","toCityCode":"AUA","departureDateString":"2017-01-28","returnDateString":"2017-01-28","startDateStringOutbound":"2017-01-28","endDateStringOutbound":"2017-01-28","startDateStringInbound":"","endDateStringInbound":"","adults":1,"children":0,"infants":0,"roundTrip":false,"useFlexDates":true,"isOutbound":true,"filterMethod":"100","promocode":"","currency":"COP","languageCode":"es-CO","fareTypeCategory":1,"IATANumber":"","securityToken":"ab05d3ae70ef47a890480di4w7oenff0pb64f8ieka7a"}
+
+                            var FlightsPostJson = new
+                            {
+                                interline = false,
+                                fromCityCode = fromiata,
+                                toCityCode = toiata,
+                                departureDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                                returnDateString = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                                startDateStringOutbound =
+                                FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                                endDateStringOutbound = FlightDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                                startDateStringInbound = "",
+                                endDateStringInbound = "",
+                                adults = 1,
+                                children = 0,
+                                infants = 0,
+                                roundTrip = false,
+                                useFlexDates = true,
+                                isOutbound = true,
+                                filterMethod = 100,
+                                promocode = "",
+                                currency = "COP",
+                                languageCode = "es-CO",
+                                fareTypeCategory = 1,
+                                IATANumber = "",
+                                securityToken = SecurityCode
+                            };
+
+                            string FlightsPostJsonString = JsonConvert.SerializeObject(FlightsPostJson);
+
+                            var dataFlightsPost = Encoding.ASCII.GetBytes(FlightsPostJsonString);
+
+                            request.Method = "POST";
+                            request.ContentType = "application/json; charset=utf-8";
+                            request.ContentLength = dataFlightsPost.Length;
+                            request.UserAgent = ua;
+                            request.Referer = requesturl;
+                            request.Headers.Add("Accept-Encoding", HeaderEncoding);
+                            request.Accept = "application/json, text/javascript, */*; q=0.01";
+                            request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+                            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                            request.CookieContainer = cookieContainer;
+                            request.Proxy = null;
+
+                            using (var streamIndex = request.GetRequestStream())
+                            {
+                                streamIndex.Write(dataFlightsPost, 0, dataFlightsPost.Length);
+                            }
+                            using (HttpWebResponse responseFlights = (HttpWebResponse) request.GetResponse())
+                            using (StreamReader readerFlights = new StreamReader(responseFlights.GetResponseStream()))
+                            {
+                                ResponseGetFlights = readerFlights.ReadToEnd();
+                            }
+                            // Parse the response for the flights!
+                            dynamic GetFlights = JsonConvert.DeserializeObject(ResponseGetFlights);
+                            // Check if OutboundSegments exists...
+                            if (GetFlights.Availability.OutboundSegments.Count > 0)
+                            {
+                                string DepartTime = GetFlights.Availability.OutboundSegments[0].Departure;
+                                string ArrivalTime = GetFlights.Availability.OutboundSegments[0].Arrival;
+                                string AirCraft = GetFlights.Availability.OutboundSegments[0].AirCraft;
+                                AirCraft = AirCraft.Trim();
+                                string FlightNumber = GetFlights.Availability.OutboundSegments[0].FlightNumber;
+                                FlightNumber = FlightNumber.Trim();
+                                string FlightOperator = GetFlights.Availability.OutboundSegments[0].Carrier.Code;
+                                FlightOperator = FlightOperator.Trim();
+                                Boolean TEMP_FlightMonday = false;
+                                Boolean TEMP_FlightTuesday = false;
+                                Boolean TEMP_FlightWednesday = false;
+                                Boolean TEMP_FlightThursday = false;
+                                Boolean TEMP_FlightFriday = false;
+                                Boolean TEMP_FlightSaterday = false;
+                                Boolean TEMP_FlightSunday = false;
+
+                                int dayofweek = Convert.ToInt32(FlightDate.DayOfWeek);
+                                if (dayofweek == 0)
+                                {
+                                    TEMP_FlightSunday = true;
+                                }
+                                if (dayofweek == 1)
+                                {
+                                    TEMP_FlightMonday = true;
+                                }
+                                if (dayofweek == 2)
+                                {
+                                    TEMP_FlightTuesday = true;
+                                }
+                                if (dayofweek == 3)
+                                {
+                                    TEMP_FlightWednesday = true;
+                                }
+                                if (dayofweek == 4)
+                                {
+                                    TEMP_FlightThursday = true;
+                                }
+                                if (dayofweek == 5)
+                                {
+                                    TEMP_FlightFriday = true;
+                                }
+                                if (dayofweek == 6)
+                                {
+                                    TEMP_FlightSaterday = true;
+                                }
+
+                                // Add Flight to CIFlights
+                                bool alreadyExists = CIFLights.Exists(x => x.FromIATA == fromiata
+                                                                           && x.ToIATA == toiata
+                                                                           && x.FromDate == FlightDate.Date
+                                                                           && x.ToDate == FlightDate.Date
+                                                                           && x.FlightNumber == FlightNumber
+                                                                           && x.FlightAirline == FlightOperator
+                                                                           && x.FlightMonday == TEMP_FlightMonday
+                                                                           && x.FlightTuesday == TEMP_FlightTuesday
+                                                                           && x.FlightWednesday == TEMP_FlightWednesday
+                                                                           && x.FlightThursday == TEMP_FlightThursday
+                                                                           && x.FlightFriday == TEMP_FlightFriday
+                                                                           && x.FlightSaterday == TEMP_FlightSaterday
+                                                                           && x.FlightSunday == TEMP_FlightSunday);
+
+
+                                if (!alreadyExists)
+                                {
+                                    // don't add flights that already exists
+                                    CIFLights.Add(new CIFLight
+                                    {
+                                        FromIATA = fromiata,
+                                        ToIATA = toiata,
+                                        FromDate = FlightDate.Date,
+                                        ToDate = FlightDate.Date,
+                                        ArrivalTime = DateTime.Parse(ArrivalTime, CultureInfo.InvariantCulture),
+                                        DepartTime = DateTime.Parse(DepartTime, CultureInfo.InvariantCulture),
+                                        FlightAircraft = AirCraft,
+                                        FlightAirline = FlightOperator,
+                                        FlightMonday = TEMP_FlightMonday,
+                                        FlightTuesday = TEMP_FlightTuesday,
+                                        FlightWednesday = TEMP_FlightWednesday,
+                                        FlightThursday = TEMP_FlightThursday,
+                                        FlightFriday = TEMP_FlightFriday,
+                                        FlightSaterday = TEMP_FlightSaterday,
+                                        FlightSunday = TEMP_FlightSunday,
+                                        FlightNumber = FlightNumber,
+                                        FlightOperator = FlightOperator,
+
+                                    });
+                                }
+                            }
+                            
+                        }
+                        catch (WebException e)
+                        {
+                            if (e.Status == WebExceptionStatus.Timeout)
+                            {
+                               Console.WriteLine("Timeout, skip");
+                            }
+
+                        }
+                        GC.Collect();
                     }//);
 
                 }
@@ -293,6 +359,10 @@ namespace CI_Wingo
             writer.Serialize(file, CIFLights);
             file.Close();
 
+
+            var export = new CultureInfo("en-US");
+            Thread.CurrentThread.CurrentCulture = export;
+            Thread.CurrentThread.CurrentUICulture = export;
 
             string gtfsDir = AppDomain.CurrentDomain.BaseDirectory + "\\gtfs";
             System.IO.Directory.CreateDirectory(gtfsDir);
@@ -473,7 +543,7 @@ namespace CI_Wingo
 
                         csvstops.WriteField(Convert.ToString(AirportResponseJson[0].code));
                         csvstops.WriteField(Convert.ToString(AirportResponseJson[0].name));
-                        csvstops.WriteField("");
+                        csvstops.WriteField(Convert.ToString(AirportResponseJson[0].city));
                         csvstops.WriteField(Convert.ToString(AirportResponseJson[0].lat));
                         csvstops.WriteField(Convert.ToString(AirportResponseJson[0].lng));
                         csvstops.WriteField("");
