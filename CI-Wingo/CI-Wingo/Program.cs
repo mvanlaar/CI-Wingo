@@ -19,6 +19,8 @@ namespace CI_Wingo
     {
         static void Main(string[] args)
         {
+            // Todo: Fix 00:00 24 hour gtfs export.
+
             List<AirportDef> _AirportsFrom = new List<AirportDef> { };
             List<AirportDef> _AirportsTo = new List<AirportDef> { };
             List<CIFLight> CIFLights = new List<CIFLight> { };
@@ -476,9 +478,9 @@ namespace CI_Wingo
                         ToAirportContinent = Convert.ToString(AirportResponseJsonTo[0].continent);
                     }
 
-                    csvroutes.WriteField(routesdist[i].FromIATA + routesdist[i].ToIATA);
+                    csvroutes.WriteField(routesdist[i].FromIATA + routesdist[i].ToIATA + routesdist[i].FlightAirline);
                     csvroutes.WriteField(routesdist[i].FlightAirline);
-                    csvroutes.WriteField(routesdist[i].FromIATA + routesdist[i].ToIATA);
+                    csvroutes.WriteField(routesdist[i].FromIATA + routesdist[i].ToIATA + routesdist[i].FlightAirline);
                     csvroutes.WriteField(FromAirportName + " - " + ToAirportName);
                     csvroutes.WriteField(""); // routes[i].FlightAircraft + ";" + CIFLights[i].FlightAirline + ";" + CIFLights[i].FlightOperator + ";" + CIFLights[i].FlightCodeShare
                     if (FromAirportCountry == ToAirportCountry)
