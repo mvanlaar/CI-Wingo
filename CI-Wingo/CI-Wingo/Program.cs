@@ -105,7 +105,7 @@ namespace CI_Wingo
 
                     request = (HttpWebRequest)WebRequest.Create("https://www.wingo.com/SearchBoxUserControl/GetAllFlightDates");
               
-                    var GetAllFlightDatesPost = new { origin = fromiata, destination = toiata, months = 12 };
+                    var GetAllFlightDatesPost = new { origin = fromiata, destination = toiata, endMonths = 12, startMonths = 0};
                     string GetAllFlightDatesPostString = JsonConvert.SerializeObject(GetAllFlightDatesPost);
                                         
                     var dataIndex = Encoding.ASCII.GetBytes(GetAllFlightDatesPostString);
